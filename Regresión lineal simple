@@ -1,0 +1,72 @@
+# Importamos las herramientas necesarias para el código. 
+from scipy.stats import t
+import numpy as np
+import pandas as pd
+
+''' Cargamos el dataset, se va a leer el archivo para así trabajar con todas las muestras de cada variable predictora elegida. '''
+vinos = pd.read_csv("winequality-white.csv", sep=";")
+
+# Definimos las variables predictoras elegidas y la variable respuesta.
+variables_X = ["fixed acidity", "volatile acidity", "citric acid", "residual sugar",
+"density", "pH", "alcohol"]
+Y = vinos["quality"]
+
+''' En esta parte del código declaramos y también calculamos parámetros que nos sirven para las 7 regresiones una por cada variable predictora.'''
+n = len(Y)                         # cantidad de muestras (4898)
+Y_media = Y.mean()                 # promedio de la calidad
+Syy = ((Y - Y_media)**2).sum()     # suma de cuadrados total
+nivel_confianza = 0.95
+alpha = 1 - nivel_confianza
+t_crit = abs(t.ppf(alpha/2, n - 2))  # valor t crítico (bilateral)
+
+# Con esta función vamos a poder realizar el análisis de cada variable predictora.  
+def analisis_simple(X, nombre):
+
+    ''' Calculamos el promedio de la variable predictora, la variación de X respecto a su media (Sxx) y la covarianza entre X y Y (Sxy) '''
+    X_media = X.mean()
+    Sxx = ((X - X_media)**2).sum()
+    Sxy = ((X - X_media)*(Y - Y_media)).sum()
+    ''' Calculamos los coeficientes estimados de la regresión, donde el beta1 corresponde a la pendiente (cuánto varía la calidad del vino si se presenta un cambio en X) y beta0 al intercepto (valor estimado de la calidad cuando X = 0) '''
+    beta1 = Sxy / Sxx
+    beta0 = Y_media - beta1 * X_media
+
+    ''' Calculamos la varianza residual que mide el error, también el coeficiente de determinación y el de correlación. '''
+    SS_res = Syy - beta1 * Sxy
+    s2 = SS_res / (n - 2)
+    s = np.sqrt(s2)
+   
+    R2 = 1 - (SS_res / Syy)
+    r = np.sign(beta1) * np.sqrt(R2)
+
+    ''' Calculamos los IC (al 95%) para beta1 y beta0. A fin de determinar con qué precisión se estiman los parámetros. '''
+    error_beta1 = np.sqrt(s2 / Sxx)
+    error_beta0 = np.sqrt(s2 * (1/n + (X_media**2 / Sxx)))
+   
+    IC_beta1 = (beta1 - t_crit * error_beta1, beta1 + t_crit * error_beta1)
+    IC_beta0 = (beta0 - t_crit * error_beta0, beta0 + t_crit * error_beta0)
+''' Calculamos el valor estimado de la calidad para el valor máximo de X, el intervalo de predicción (IP) y el intervalo de confianza de la media (ICM). '''
+    X_max = X.max()
+    y_pred = beta0 + beta1 * X_max
+   
+    error_media = np.sqrt(s2 * (1/n + ((X_max - X_media)**2 / Sxx)))
+    ICM = (y_pred - t_crit * error_media, y_pred + t_crit * error_media)
+
+    error_pred = np.sqrt(s2 * (1 + 1/n + ((X_max - X_media)**2 / Sxx)))
+    IP = (y_pred - t_crit * error_pred, y_pred + t_crit * error_pred)
+
+    # Imprimimos los resultados de cada regresión.
+    print(f"\n{'='*70}")
+    print(f"Variable: {nombre}")
+    print(f"Modelo: ŷ = {beta0:.4f} + {beta1:.4f}x")
+    print(f"Varianza residual: {s2:.4f}")
+    print(f"R² = {R2:.4f} --- r = {r:.4f}")
+    print(f"IC(β₁): [{IC_beta1[0]:.4f} ; {IC_beta1[1]:.4f}]")
+    print(f"IC(β₀): [{IC_beta0[0]:.4f} ; {IC_beta0[1]:.4f}]")
+    print(f"ICM x_max={X_max:.3f}")
+    print(f"ICM(Y): [{ICM[0]:.4f} ; {ICM[1]:.4f}]")
+    print(f"IP x_max={X_max:.3f}")
+    print(f"IP(Y) : [{IP[0]:.4f} ; {IP[1]:.4f}]")
+
+''' Por último, para que el código funcione correctamente, utilizamos la función de análisis a cada variable predictora. Se van a realizar los cálculos secuencialmente.'''
+for var in variables_X:
+    analisis_simple(vinos[var], var)
