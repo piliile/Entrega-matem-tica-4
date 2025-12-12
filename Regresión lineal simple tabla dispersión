@@ -1,0 +1,29 @@
+# Importamos numpy (cálculos numéricos), matplotlib (gráficos) y pandas (para leer el archivo CSV).
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Leemos el archivo CSV de calidad del vino blanco.
+df = pd.read_csv("winequality-white.csv", sep=";")
+
+# Definimos la variable predictora alcohol y la variable respuesta calidad. 
+X = df["alcohol"]
+Y = df["quality"]
+
+# Calculamos la pendiente beta1, el intercepto beta0 y los valores.
+beta1 = np.cov(X, Y, bias=True)[0,1] / np.var(X)
+beta0 = Y.mean() - beta1 * X.mean()
+y_pred = beta0 + beta1 * X
+
+# Hacemos una figura de tamaño 8x6, dibujamos el gráfico de dispersión y la recta de regresión.
+plt.figure(figsize=(8,6))
+plt.scatter(X, Y)
+plt.plot(X, y_pred)
+
+# Etiquetamos a los ejes y le ponemos un título al gráfico.
+plt.xlabel("Alcohol")
+plt.ylabel("Calidad")
+plt.title("Relación entre Alcohol y Calidad del vino blanco")
+
+# Por último mostramos el gráfico. 
+plt.show()
